@@ -14,6 +14,10 @@ def Controller(imgSrc):
     thresh = cv2.adaptiveThreshold (gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11,2)                 #Lấy ảnh ngưỡng
     contours, h = cv2.findContours (thresh, 1,2)  
 
+    imgContours = img.copy()
+    if len(contours) > 0:
+        cv2.drawContours(imgContours, contours,-1, (0, 255, 0),1)                  #Đánh dấu contours trên ảnh
+
     largest_rectangle = [0,0,0]
     for cnt in contours:
         peri = 0.01*cv2.arcLength (cnt, True)                                      #khoảng cách tối đa từ đường bao đến đường bao gần đúng 10%
@@ -28,11 +32,8 @@ def Controller(imgSrc):
     x,y,w,h = cv2.boundingRect(largest_rectangle[1])                              #Vẽ Hình chữ nhật gần đúng từ contours tìm được,
                                                                                   #w, h là chiều rộng và chiều cao của ma trận
     imageCrop = img [y:y+h, x:x+w]                                                #x, y của điểm trên bên trái của hình chữ nhật, 
-    # cv2.imshow ('DANH DAU DOI TƯONG', img)
-    # cv2.drawContours(img, [largest_rectangle[1]],0, (255, 255, 255),18)
-    # cv2.imshow ('CAT KHUNG BIÊN SO', img)
 
-    return img, thresh, imgDrawCt, imageCrop
+    return img, thresh, imgDrawCt, imageCrop,imgContours
 
 
 #-----------------------Dự đoán biển số từ hình ảnh đã cắt bằng thư viện----------------------
@@ -48,12 +49,14 @@ def predict(img):
     return data
 
 
-src = 'img1.jpg'
-img, thresh, imgDrawCt, imageCrop = Controller(src)
+src = 'img_car/img1.jpg'
+img, thresh, imgDrawCt, imageCrop, imgContours = Controller(src)
 cv2.imshow ('Default', img)
 cv2.imshow ('Thresh', thresh)
 cv2.imshow ('Img Draw Max Contours', imgDrawCt)
 cv2.imshow ('imageCrop', imageCrop)
+cv2.imshow("imgContours", imgContours)
+
 data = predict(imageCrop)
 print("Thông tin biển số: ")
 print(data)
