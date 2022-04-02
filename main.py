@@ -10,8 +10,7 @@ from tkinter import *
 from PIL import Image, ImageTk
 
                         #  -DOC HINH ANH - TACH HINH ANH NHAN DIEN-
-def Controller(imgSrc):
-    img = cv2.imread(imgSrc)
+def Controller(img):
     gray = cv2.cvtColor (img, cv2.COLOR_BGR2GRAY)                               #Tạo một bức ảnh xám từ bức ảnh gốc
     gray = cv2.medianBlur (gray, 5)                                             #Giảm nhiễu
 
@@ -64,7 +63,8 @@ def getImage():
         filetypes=filetypes)
 
     if filename != '':
-        img, thresh, imgDrawCt, imageCrop, imgContours = Controller(filename)
+        img = cv2.imread(filename)
+        img, thresh, imgDrawCt, imageCrop, imgContours = Controller(img)
         cv2.imshow ('Default', img)
         cv2.imshow ('Thresh', thresh)
         cv2.imshow ('Img Draw Max Contours', imgDrawCt)
@@ -72,6 +72,52 @@ def getImage():
         cv2.imshow("imgContours", imgContours)
         data = predict(imageCrop)
         label_show.set(data)
+
+def getVideo():
+    filetypes = (
+        ('text files', '*.mp4'),
+        ('All files', '*.*')
+    )
+    filename = fd.askopenfilename(
+        title='Open a file',
+        initialdir='/',
+        filetypes=filetypes)
+
+    if filename != '':
+        cap = cv2.VideoCapture(filename)
+
+        while True:
+            ret, frame = cap.read()
+
+            img, thresh, imgDrawCt, imageCrop,imgContours = Controller(frame)
+
+            cv2.imshow("Default", img)
+            cv2.imshow("DrawCt", imgDrawCt)
+            cv2.imshow("imageCrop", imageCrop)
+            data = predict(imageCrop)
+            label_show.set(data)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+        cap.release()
+        cv2.destroyAllWindows()
+def getCamera():
+    cap = cv2.VideoCapture(0)
+
+    while True:
+        ret, frame = cap.read()
+
+        img, thresh, imgDrawCt, imageCrop,imgContours = Controller(frame)
+
+        cv2.imshow("Default", img)
+        cv2.imshow("DrawCt", imgDrawCt)
+        cv2.imshow("imageCrop", imageCrop)
+        data = predict(imageCrop)
+        label_show.set(data)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    cap.release()
+    cv2.destroyAllWindows()
+
 
 def close():
     sys.exit()
@@ -82,21 +128,23 @@ root.option_add("*Font","TimeNewRoman 14")
 label_show=StringVar()
 
 Label (root, text="Nhận diện biển số xe máy với opencv và pytesseract").grid(row=0,columnspan=2)
-Button (root, text="Chọn ảnh",bg= 'cyan', command=getImage).grid(row=1,columnspan=2,padx=10,pady=10,sticky = E)
-Button (root, text="Thoát",bg= 'cyan', command=close).grid(row=2,columnspan=2,padx=10,pady=10,sticky = E)
+Button (root, text="Chọn ảnh",bg= 'cyan', command=getImage).grid(row=3,column=0,padx=10,pady=10,sticky = W)
+Button (root, text="Nhận diện video",bg= 'cyan', command=getVideo).grid(row=4,column=0,padx=10,pady=10,sticky = W)
+Button (root, text="Nhận diện Camera",bg= 'cyan', command=getCamera).grid(row=5,column=0,padx=10,pady=10,sticky = W)
+Button (root, text="Thoát",bg= 'cyan', command=close).grid(row=6,column=0,padx=10,pady=10,sticky = W)
 
 Label (root, text="Kết quả:").grid(row=1,column=0,padx=10,pady=10,sticky = W)
 Label(root,textvariable=label_show).grid(row=2,column=0,padx=10,pady=10,sticky = W)
 
-basewidth = 300
-imgDefaul = 'img_car/img1.jpg'
-imgDefaul= Image.open(imgDefaul)
-wpercent = (basewidth / float(imgDefaul.size[0]))
-hsize = int((float(imgDefaul.size[1]) * float(wpercent)))
-imgDefaul = imgDefaul.resize((basewidth, hsize), Image.ANTIALIAS)
-render = ImageTk.PhotoImage(imgDefaul)
-img1 = Label(root, image=render)
-img1.place(x=0, y=100)
+# basewidth = 300
+# imgDefaul = 'img_car/img1.jpg'
+# imgDefaul= Image.open(imgDefaul)
+# wpercent = (basewidth / float(imgDefaul.size[0]))
+# hsize = int((float(imgDefaul.size[1]) * float(wpercent)))
+# imgDefaul = imgDefaul.resize((basewidth, hsize), Image.ANTIALIAS)
+# render = ImageTk.PhotoImage(imgDefaul)
+# img1 = Label(root, image=render)
+# img1.place(x=0, y=100)
 
 root.mainloop()
 

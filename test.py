@@ -1,13 +1,7 @@
-from cv2 import waitKey
-import numpy as np
 import cv2
-import pytesseract
-import matplotlib.pyplot as plt
-from PIL import Image
-                        #    -DOC HINH ANH - TACH HINH ANH NHAN DIEN-
 
-def Controller(imgSrc):
-    img = cv2.imread(imgSrc)
+
+def Controller(img):
     gray = cv2.cvtColor (img, cv2.COLOR_BGR2GRAY)                               #Tạo một bức ảnh xám từ bức ảnh gốc
     gray = cv2.medianBlur (gray, 5)                                             #Giảm nhiễu
 
@@ -35,30 +29,18 @@ def Controller(imgSrc):
 
     return img, thresh, imgDrawCt, imageCrop,imgContours
 
+cap = cv2.VideoCapture(0)
 
-#-----------------------Dự đoán biển số từ hình ảnh đã cắt bằng thư viện----------------------
-def predict(img):
-    pytesseract.pytesseract.tesseract_cmd = "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
-    gray = cv2.cvtColor (img, cv2.COLOR_BGR2GRAY)
-    blur = cv2.GaussianBlur (gray, (3, 3), 0)
-    thresh = cv2.threshold (blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU) [1]
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
-    opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
-    invert = 255 - opening
-    data = pytesseract.image_to_string (invert, lang='eng', config='--psm 6')
-    return data
+while True:
+    ret, frame = cap.read()
 
+    img, thresh, imgDrawCt, imageCrop,imgContours = Controller(frame)
 
-src = 'img_car/img1.jpg'
-img, thresh, imgDrawCt, imageCrop, imgContours = Controller(src)
-cv2.imshow ('Default', img)
-cv2.imshow ('Thresh', thresh)
-cv2.imshow ('Img Draw Max Contours', imgDrawCt)
-cv2.imshow ('imageCrop', imageCrop)
-cv2.imshow("imgContours", imgContours)
+    cv2.imshow("Default", img)
+    cv2.imshow("DrawCt", imgDrawCt)
+    cv2.imshow("imageCrop", imageCrop)
 
-data = predict(imageCrop)
-print("Thông tin biển số: ")
-print(data)
-
-waitKey()
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+cap.release()
+cv2.destroyAllWindows()
