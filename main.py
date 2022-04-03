@@ -99,7 +99,8 @@ def getVideo():
             cv2.imshow("DrawCt", imgDrawCt)
             cv2.imshow("imageCrop", imageCrop)
             data = predict(imageCrop)
-            print(data)
+            if data != '':
+                print(data)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
@@ -117,7 +118,8 @@ def getCamera():
         cv2.imshow("DrawCt", imgDrawCt)
         cv2.imshow("imageCrop", imageCrop)
         data = predict(imageCrop)
-        print(data)
+        if data != '':
+            print(data)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     cap.release()
