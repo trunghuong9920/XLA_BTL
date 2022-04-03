@@ -17,6 +17,7 @@ def Controller(img):
     thresh = cv2.adaptiveThreshold (gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11,2)                 #Lấy ảnh ngưỡng
     contours, h = cv2.findContours (thresh, 1,2)  
 
+
     imgContours = img.copy()
     if len(contours) > 0:
         cv2.drawContours(imgContours, contours,-1, (0, 255, 0),1)                  #Đánh dấu contours trên ảnh
@@ -34,8 +35,11 @@ def Controller(img):
 
     x,y,w,h = cv2.boundingRect(largest_rectangle[1])                              #Vẽ Hình chữ nhật gần đúng từ contours tìm được,
                                                                                   #w, h là chiều rộng và chiều cao của ma trận
-    imageCrop = img [y:y+h, x:x+w]                                                #x, y của điểm trên bên trái của hình chữ nhật, 
+                                                                                    #x, y của điểm trên bên trái của hình chữ nhật, 
+    imageCrop = img.copy()
+    cv2.drawContours(imageCrop, [largest_rectangle[1]],0, (255, 255, 255),8)          #Đánh dấu vùng contours vừa tìm được
 
+    imageCrop = imageCrop[y:y+h, x:x+w] 
     return img, thresh, imgDrawCt, imageCrop,imgContours
 
 
@@ -66,10 +70,10 @@ def getImage():
         img = cv2.imread(filename)
         img, thresh, imgDrawCt, imageCrop, imgContours = Controller(img)
         cv2.imshow ('Default', img)
-        cv2.imshow ('Thresh', thresh)
+        # cv2.imshow ('Thresh', thresh)
         cv2.imshow ('Img Draw Max Contours', imgDrawCt)
         cv2.imshow ('imageCrop', imageCrop)
-        cv2.imshow("imgContours", imgContours)
+        # cv2.imshow("imgContours", imgContours)
         data = predict(imageCrop)
         label_show.set(data)
 
@@ -95,7 +99,8 @@ def getVideo():
             cv2.imshow("DrawCt", imgDrawCt)
             cv2.imshow("imageCrop", imageCrop)
             data = predict(imageCrop)
-            label_show.set(data)
+            print(data)
+
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         cap.release()
@@ -112,7 +117,7 @@ def getCamera():
         cv2.imshow("DrawCt", imgDrawCt)
         cv2.imshow("imageCrop", imageCrop)
         data = predict(imageCrop)
-        label_show.set(data)
+        print(data)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
     cap.release()
@@ -123,7 +128,7 @@ def close():
     sys.exit()
 
 root =Tk()
-root.geometry("600x350")
+root.geometry("600x500")
 root.option_add("*Font","TimeNewRoman 14")
 label_show=StringVar()
 
@@ -147,4 +152,3 @@ Label(root,textvariable=label_show).grid(row=2,column=0,padx=10,pady=10,sticky =
 # img1.place(x=0, y=100)
 
 root.mainloop()
-
