@@ -42,6 +42,32 @@ def Controller(img):
     imageCrop = imageCrop[y:y+h, x:x+w] 
     return img, thresh, imgDrawCt, imageCrop,imgContours
 
+#-----------------------Tách chữ---------------------------------------------------
+def editText(img):
+    WIDTH = 320
+    HEIGHT = 240
+    image = cv2.resize(img, (WIDTH, HEIGHT))
+    grayImg = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    blurImg = cv2.GaussianBlur(grayImg, (9,9), 0, 0)
+    thImg = cv2.threshold(blurImg, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU) [1]
+
+    cnt, _ = cv2.findContours(thImg,cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    for c in cnt:
+        if cv2.contourArea(c) < 15:
+            continue
+        else:
+            x,y,w,h = cv2.boundingRect(c)
+            line = thImg[y:y+h, x:x+w]
+
+            cnt, _ = cv2.findContours(line,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+
+            for c in cnt:
+                if cv2.contourArea(c) < 15:
+                    continue
+                x1,y1,w1,h1 = cv2.boundingRect(c)
+
+                cv2.rectangle(image[y:y+h, x:x+w],(x1,y1), (x1+w1-1, y1+h1-1),(0,0,255),1)
+    return image
 
 #-----------------------Dự đoán biển số từ hình ảnh đã cắt bằng thư viện----------------------
 def predict(img):
@@ -72,7 +98,7 @@ def getImage():
         cv2.imshow ('Default', img)
         # cv2.imshow ('Thresh', thresh)
         cv2.imshow ('Img Draw Max Contours', imgDrawCt)
-        cv2.imshow ('imageCrop', imageCrop)
+        cv2.imshow ('imageCrop', editText(imageCrop))
         # cv2.imshow("imgContours", imgContours)
         data = predict(imageCrop)
         label_show.set(data)
@@ -97,10 +123,12 @@ def getVideo():
 
             cv2.imshow("Default", img)
             cv2.imshow("DrawCt", imgDrawCt)
-            cv2.imshow("imageCrop", imageCrop)
+            cv2.imshow("imageCrop", editText(imageCrop))
             data = predict(imageCrop)
             if data != '':
                 print(data)
+                label_show.set(data)
+
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
