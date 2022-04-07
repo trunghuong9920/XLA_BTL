@@ -1,3 +1,10 @@
+#Xây dựng chương trình nhận diện biển số xe máy qua camera cổng ra vào bãi gửi xe
+#Thuật toán chính sử dụng:
+# + medianBlur(): Lọc trung vị
+# + adaptiveThreshold(): Phân ngưỡng
+# + findContours(): Tìm đường bao
+# + drawContours(): Vẽ đường bao
+
 from cv2 import waitKey
 import numpy as np
 import cv2
@@ -9,14 +16,14 @@ from tkinter import filedialog as fd
 from tkinter import *
 from PIL import Image, ImageTk
 
-                        #  -DOC HINH ANH - TACH HINH ANH NHAN DIEN-
+#------------------------------------------Đọc hình ảnh, cắt vùng biển số
+
 def Controller(img):
-    gray = cv2.cvtColor (img, cv2.COLOR_BGR2GRAY)                               #Tạo một bức ảnh xám từ bức ảnh gốc
-    gray = cv2.medianBlur (gray, 5)                                             #Giảm nhiễu
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)                               #Tạo một bức ảnh xám từ bức ảnh gốc
+    gray = cv2.medianBlur(gray, 5)                                             #Giảm nhiễu
 
-    thresh = cv2.adaptiveThreshold (gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11,2)                 #Lấy ảnh ngưỡng
-    contours, h = cv2.findContours (thresh, 1,2)  
-
+    thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11,2)                 #Lấy ảnh ngưỡng
+    contours, h = cv2.findContours(thresh,  cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)                #CHAIN_APPROX_SIMPLE: Chỉ giữ lại điểm đầu và cuối
 
     imgContours = img.copy()
     if len(contours) > 0:
@@ -24,8 +31,8 @@ def Controller(img):
 
     largest_rectangle = [0,0,0]
     for cnt in contours:
-        peri = 0.01*cv2.arcLength (cnt, True)                                      #khoảng cách tối đa từ đường bao đến đường bao gần đúng 10%
-        approx = cv2.approxPolyDP (cnt,peri, True)                                 #Lấy gần đúng các đa giác, 
+        peri = 0.01*cv2.arcLength(cnt, True)                                     #khoảng cách tối đa từ đường bao đến đường bao gần đúng 10%
+        approx = cv2.approxPolyDP(cnt,peri, True)                                 #Xấp xỉ đường viền 
         if len(approx) == 4:   
             area = cv2.contourArea (cnt)                                           #Tính diện tích đa giác, lấy đa giác lớn nhất là biển số
             if area > largest_rectangle[0]:                                   
@@ -42,27 +49,30 @@ def Controller(img):
     imageCrop = imageCrop[y:y+h, x:x+w] 
     return img, thresh, imgDrawCt, imageCrop,imgContours
 
-#-----------------------Tách chữ---------------------------------------------------
+#-----------------------Tách vùng ký tự---------------------------------------------------
 def editText(img):
     WIDTH = 320
     HEIGHT = 240
     image = cv2.resize(img, (WIDTH, HEIGHT))
     grayImg = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    blurImg = cv2.GaussianBlur(grayImg, (9,9), 0, 0)
-    thImg = cv2.threshold(blurImg, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU) [1]
+    blurImg = cv2.medianBlur(grayImg, 5)
 
-    cnt, _ = cv2.findContours(thImg,cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    thImg = cv2.threshold(blurImg, 127, 255, cv2.THRESH_BINARY_INV)[1]
+    
+    cnt, _ = cv2.findContours(thImg,cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
     for c in cnt:
-        if cv2.contourArea(c) < 15:
+        if cv2.contourArea(c) < 10:
             continue
         else:
             x,y,w,h = cv2.boundingRect(c)
+
             line = thImg[y:y+h, x:x+w]
 
             cnt, _ = cv2.findContours(line,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
 
             for c in cnt:
-                if cv2.contourArea(c) < 15:
+                if 5< cv2.contourArea(c) < 10:
                     continue
                 x1,y1,w1,h1 = cv2.boundingRect(c)
 
@@ -72,13 +82,9 @@ def editText(img):
 #-----------------------Dự đoán biển số từ hình ảnh đã cắt bằng thư viện----------------------
 def predict(img):
     pytesseract.pytesseract.tesseract_cmd = "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+    custom_config = r'--oem 3 --psm 6'
     gray = cv2.cvtColor (img, cv2.COLOR_BGR2GRAY)
-    blur = cv2.GaussianBlur (gray, (3, 3), 0)
-    thresh = cv2.threshold (blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU) [1]
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
-    opening = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
-    invert = 255 - opening
-    data = pytesseract.image_to_string (invert, lang='eng', config='--psm 6')
+    data = pytesseract.image_to_string(gray, config=custom_config)
     return data
 
 
