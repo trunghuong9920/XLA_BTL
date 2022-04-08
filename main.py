@@ -20,34 +20,41 @@ from PIL import Image, ImageTk
 #------------------------------------------Đọc hình ảnh, cắt vùng biển số
 
 def Controller(img):
+
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)                               #Tạo một bức ảnh xám từ bức ảnh gốc
     gray = cv2.medianBlur(gray, 5)                                             #Giảm nhiễu
 
-    thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11,2)                 #Lấy ảnh ngưỡng
-    contours, h = cv2.findContours(thresh,  cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)                #CHAIN_APPROX_SIMPLE: Chỉ giữ lại điểm đầu và cuối
+    thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11,2)                 #Lấy ảnh ngưỡng
+    
+    contours, h = cv2.findContours(thresh,  cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)                                    #CHAIN_APPROX_SIMPLE: Chỉ giữ lại điểm đầu và cuối
 
     imgContours = img.copy()
     if len(contours) > 0:
-        cv2.drawContours(imgContours, contours, -1, (0, 255, 0),1)                  #Đánh dấu contours trên ảnh
+        cv2.drawContours(imgContours, contours, -1, (0, 255, 0), 1)                  #Đánh dấu contours trên ảnh
 
     data_contours = [0,0,0]
+
     for cnt in contours:
         epsilon = 0.01*cv2.arcLength(cnt, True)                                     #khoảng cách tối đa từ đường bao đến đường bao gần đúng 
         approx = cv2.approxPolyDP(cnt,epsilon, True)                                #Xấp xỉ đường viền Ramer – Douglas – Peucker
+
         if len(approx) == 4:   
-            if cv2.contourArea (cnt) > data_contours[0]:                                   
+            if cv2.contourArea(cnt) > data_contours[0]:                                   
                 data_contours = [cv2.contourArea(cnt), cnt, approx]
 
+
     imgDrawCt = img.copy()
-    cv2.drawContours(imgDrawCt, [data_contours[1]], 0, (0, 255, 0),8)          #Đánh dấu vùng contours vừa tìm được
+    cv2.drawContours(imgDrawCt, [data_contours[1]], 0, (0, 255, 0), 8)          #Đánh dấu vùng contours vừa tìm được
 
     x,y,w,h = cv2.boundingRect(data_contours[1])                                #Vẽ Hình chữ nhật gần đúng từ contours tìm được,
-                                                                                    #w, h là chiều rộng và chiều cao của ma trận
-                                                                                    #x, y của điểm trên bên trái của hình chữ nhật, 
+                                                                                #w, h là chiều rộng và chiều cao của ma trận
+                                                                                #x, y của điểm trên bên trái của hình chữ nhật, 
+
     imageCrop = img.copy()
     cv2.drawContours(imageCrop, [data_contours[1]], 0, (255, 255, 255),8)          #Đánh dấu vùng contours vừa tìm được
 
     imageCrop = imageCrop[y:y+h, x:x+w] 
+    
     return img, thresh, imgDrawCt, imageCrop,imgContours
 
 #-----------------------Tách vùng ký tự---------------------------------------------------
@@ -55,6 +62,7 @@ def editText(img):
     WIDTH = 320
     HEIGHT = 240
     image = cv2.resize(img, (WIDTH, HEIGHT))
+
     grayImg = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blurImg = cv2.medianBlur(grayImg, 5)
 
@@ -69,6 +77,7 @@ def editText(img):
             x,y,w,h = cv2.boundingRect(c)
 
             cv2.rectangle(image,(x,y), (x+w, y+h),(0,0,255),1)                                      #Vẽ hình chữ nhật
+
     return image
 
 #-----------------------Dự đoán biển số từ hình ảnh đã cắt bằng thư viện----------------------
@@ -101,6 +110,7 @@ def getVideo():
             cv2.imshow("Default", img)
             cv2.imshow("DrawCt", imgDrawCt)
             cv2.imshow("imageCrop", editText(imageCrop))
+
             data = predict(imageCrop)
 
             if data != '':
@@ -110,6 +120,7 @@ def getVideo():
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
+
         cap.release()
         cv2.destroyAllWindows()
 
