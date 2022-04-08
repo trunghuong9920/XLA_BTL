@@ -1,11 +1,12 @@
 #Xây dựng chương trình nhận diện biển số xe máy qua camera cổng ra vào bãi gửi xe
 #Thuật toán chính sử dụng:
 # + medianBlur(): Lọc trung vị
-# + adaptiveThreshold(): Phân ngưỡng
+# + Threshold(): Phân ngưỡng
+# + adaptiveThreshold(): Phân ngưỡng thích ứng
 # + findContours(): Tìm đường bao
 # + drawContours(): Vẽ đường bao
 
-from cv2 import waitKey
+from cv2 import arcLength, waitKey
 import numpy as np
 import cv2
 import sys
@@ -27,24 +28,24 @@ def Controller(img):
 
     imgContours = img.copy()
     if len(contours) > 0:
-        cv2.drawContours(imgContours, contours,-1, (0, 255, 0),1)                  #Đánh dấu contours trên ảnh
+        cv2.drawContours(imgContours, contours, -1, (0, 255, 0),1)                  #Đánh dấu contours trên ảnh
 
-    largest_rectangle = [0,0,0]
+    data_contours = [0,0,0]
     for cnt in contours:
-        peri = 0.01*cv2.arcLength(cnt, True)                                     #khoảng cách tối đa từ đường bao đến đường bao gần đúng 10%
-        approx = cv2.approxPolyDP(cnt,peri, True)                                 #Xấp xỉ đường viền 
+        epsilon = 0.01*cv2.arcLength(cnt, True)                                     #khoảng cách tối đa từ đường bao đến đường bao gần đúng 
+        approx = cv2.approxPolyDP(cnt,epsilon, True)                                #Xấp xỉ đường viền Ramer – Douglas – Peucker
         if len(approx) == 4:   
-            area = cv2.contourArea (cnt)                                           #Tính diện tích đa giác, lấy đa giác lớn nhất là biển số
-            if area > largest_rectangle[0]:                                   
-                largest_rectangle = [cv2.contourArea (cnt), cnt, approx]
-    imgDrawCt = img.copy()
-    cv2.drawContours(imgDrawCt, [largest_rectangle[1]],0, (0, 255, 0),8)          #Đánh dấu vùng contours vừa tìm được
+            if cv2.contourArea (cnt) > data_contours[0]:                                   
+                data_contours = [cv2.contourArea(cnt), cnt, approx]
 
-    x,y,w,h = cv2.boundingRect(largest_rectangle[1])                                #Vẽ Hình chữ nhật gần đúng từ contours tìm được,
+    imgDrawCt = img.copy()
+    cv2.drawContours(imgDrawCt, [data_contours[1]], 0, (0, 255, 0),8)          #Đánh dấu vùng contours vừa tìm được
+
+    x,y,w,h = cv2.boundingRect(data_contours[1])                                #Vẽ Hình chữ nhật gần đúng từ contours tìm được,
                                                                                     #w, h là chiều rộng và chiều cao của ma trận
                                                                                     #x, y của điểm trên bên trái của hình chữ nhật, 
     imageCrop = img.copy()
-    cv2.drawContours(imageCrop, [largest_rectangle[1]],0, (255, 255, 255),8)          #Đánh dấu vùng contours vừa tìm được
+    cv2.drawContours(imageCrop, [data_contours[1]], 0, (255, 255, 255),8)          #Đánh dấu vùng contours vừa tìm được
 
     imageCrop = imageCrop[y:y+h, x:x+w] 
     return img, thresh, imgDrawCt, imageCrop,imgContours
@@ -62,21 +63,12 @@ def editText(img):
     cnt, _ = cv2.findContours(thImg,cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     for c in cnt:
-        if cv2.contourArea(c) < 10:
+        if cv2.contourArea(c) < 10 or cv2.contourArea(c) > 4000:
             continue
         else:
             x,y,w,h = cv2.boundingRect(c)
 
-            line = thImg[y:y+h, x:x+w]
-
-            cnt, _ = cv2.findContours(line,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-
-            for c in cnt:
-                if 5< cv2.contourArea(c) < 10:
-                    continue
-                x1,y1,w1,h1 = cv2.boundingRect(c)
-
-                cv2.rectangle(image[y:y+h, x:x+w],(x1,y1), (x1+w1-1, y1+h1-1),(0,0,255),1)
+            cv2.rectangle(image,(x,y), (x+w, y+h),(0,0,255),1)                                      #Vẽ hình chữ nhật
     return image
 
 #-----------------------Dự đoán biển số từ hình ảnh đã cắt bằng thư viện----------------------
@@ -87,27 +79,6 @@ def predict(img):
     data = pytesseract.image_to_string(gray, config=custom_config)
     return data
 
-
-def getImage():
-    filetypes = (
-        ('text files', '*.jpg'),
-        ('All files', '*.*')
-    )
-    filename = fd.askopenfilename(
-        title='Open a file',
-        initialdir='/',
-        filetypes=filetypes)
-
-    if filename != '':
-        img = cv2.imread(filename)
-        img, thresh, imgDrawCt, imageCrop, imgContours = Controller(img)
-        cv2.imshow ('Default', img)
-        # cv2.imshow ('Thresh', thresh)
-        cv2.imshow ('Img Draw Max Contours', imgDrawCt)
-        cv2.imshow ('imageCrop', editText(imageCrop))
-        # cv2.imshow("imgContours", imgContours)
-        data = predict(imageCrop)
-        label_show.set(data)
 
 def getVideo():
     filetypes = (
@@ -131,6 +102,7 @@ def getVideo():
             cv2.imshow("DrawCt", imgDrawCt)
             cv2.imshow("imageCrop", editText(imageCrop))
             data = predict(imageCrop)
+
             if data != '':
                 print(data)
                 label_show.set(data)
@@ -151,7 +123,6 @@ root.option_add("*Font","TimeNewRoman 14")
 label_show=StringVar()
 
 Label (root, text="Nhận diện biển số xe máy với opencv và pytesseract").grid(row=0,columnspan=2)
-Button (root, text="Chọn ảnh",bg= 'cyan', command=getImage).grid(row=3,column=0,padx=10,pady=10,sticky = W)
 Button (root, text="Nhận diện video",bg= 'cyan', command=getVideo).grid(row=4,column=0,padx=10,pady=10,sticky = W)
 Button (root, text="Thoát",bg= 'cyan', command=close).grid(row=6,column=0,padx=10,pady=10,sticky = W)
 
