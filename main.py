@@ -17,14 +17,14 @@ from tkinter import filedialog as fd
 from tkinter import *
 from PIL import Image, ImageTk
 
-#------------------------------------------Đọc hình ảnh, cắt vùng biển số
+#------------------------------------------Đọc hình ảnh, cắt vùng biển số-----------------------
 
 def Controller(img):
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)                               #Tạo một bức ảnh xám từ bức ảnh gốc
     gray = cv2.medianBlur(gray, 5)                                             #Giảm nhiễu
 
-    thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11,2)                 #Lấy ảnh ngưỡng
+    thresh = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 13,4)                 #Lấy ảnh ngưỡng
     
     contours, h = cv2.findContours(thresh,  cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)                                    #CHAIN_APPROX_SIMPLE: Chỉ giữ lại điểm đầu và cuối
 
@@ -35,7 +35,7 @@ def Controller(img):
     data_contours = [0,0,0]
 
     for cnt in contours:
-        epsilon = 0.01*cv2.arcLength(cnt, True)                                     #khoảng cách tối đa từ đường bao đến đường bao gần đúng 
+        epsilon = 0.1*cv2.arcLength(cnt, True)                                     #khoảng cách tối đa từ đường bao đến đường bao gần đúng 
         approx = cv2.approxPolyDP(cnt,epsilon, True)                                #Xấp xỉ đường viền Ramer – Douglas – Peucker
 
         if len(approx) == 4:   
@@ -51,7 +51,7 @@ def Controller(img):
                                                                                 #x, y của điểm trên bên trái của hình chữ nhật, 
 
     imageCrop = img.copy()
-    cv2.drawContours(imageCrop, [data_contours[1]], 0, (255, 255, 255),8)          #Đánh dấu vùng contours vừa tìm được
+    cv2.drawContours(imageCrop, [data_contours[1]], 0, (255, 255, 255),15)          #Đánh dấu vùng contours vừa tìm được
 
     imageCrop = imageCrop[y:y+h, x:x+w] 
     
@@ -71,7 +71,7 @@ def editText(img):
     cnt, _ = cv2.findContours(thImg,cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     for c in cnt:
-        if cv2.contourArea(c) < 10 or cv2.contourArea(c) > 4000:
+        if cv2.contourArea(c) < 10 or cv2.contourArea(c) > 4000 :
             continue
         else:
             x,y,w,h = cv2.boundingRect(c)
